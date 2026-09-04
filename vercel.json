@@ -27,6 +27,22 @@
       "destination": "/frontend/vite.svg"
     },
     {
+      "source": "/manifest.webmanifest",
+      "destination": "/frontend/manifest.webmanifest"
+    },
+    {
+      "source": "/sw.js",
+      "destination": "/frontend/sw.js"
+    },
+    {
+      "source": "/workbox-(.*)",
+      "destination": "/frontend/workbox-$1"
+    },
+    {
+      "source": "/dayflow-icon.svg",
+      "destination": "/frontend/dayflow-icon.svg"
+    },
+    {
       "source": "/(.*)",
       "destination": "/frontend/index.html"
     }
