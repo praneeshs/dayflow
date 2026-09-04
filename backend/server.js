@@ -10,8 +10,6 @@ import settingsRouter from './routes/settings.js';
 import dashboardRouter from './routes/dashboard.js';
 import performanceRouter from './routes/performance.js';
 
-await initSchema();
-
 const app = express();
 app.use(cors());
 app.use(express.json());
