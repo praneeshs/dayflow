@@ -43,6 +43,10 @@
       "destination": "/frontend/dayflow-icon.svg"
     },
     {
+      "source": "/registerSW.js",
+      "destination": "/frontend/registerSW.js"
+    },
+    {
       "source": "/(.*)",
       "destination": "/frontend/index.html"
     }
