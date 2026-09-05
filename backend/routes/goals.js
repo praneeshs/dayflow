@@ -5,10 +5,16 @@ const router = Router();
 
 async function withProgress(goal) {
   const { rows: milestones } = await db.query(`SELECT * FROM milestones WHERE goal_id = $1 ORDER BY sort_order ASC`, [goal.id]);
-  const done = milestones.filter(m => m.done).length;
-  const progress = milestones.length ? Math.round((done / milestones.length) * 100) : 0;
   const { rows: linkedTasks } = await db.query(`SELECT id, title, status FROM tasks WHERE goal_id = $1 ORDER BY id DESC`, [goal.id]);
-  return { ...goal, milestones, progress, milestones_done: done, milestones_total: milestones.length, linked_tasks: linkedTasks };
+  
+  const doneMilestones = milestones.filter(m => m.done).length;
+  const doneTasks = linkedTasks.filter(t => t.status === 'completed').length;
+  
+  const totalItems = milestones.length + linkedTasks.length;
+  const totalDone = doneMilestones + doneTasks;
+  const progress = totalItems > 0 ? Math.round((totalDone / totalItems) * 100) : 0;
+
+  return { ...goal, milestones, progress, milestones_done: doneMilestones, milestones_total: milestones.length, linked_tasks: linkedTasks };
 }
 
 router.get('/', async (req, res) => {
@@ -97,7 +103,7 @@ router.post('/:id/milestones', async (req, res) => {
     const maxSortResult = await db.query(`SELECT COALESCE(MAX(sort_order), -1) m FROM milestones WHERE goal_id=$1`, [req.params.id]);
     const maxSort = parseInt(maxSortResult.rows[0].m, 10);
     
-    await db.query(`INSERT INTO milestones (goal_id, title, done, is_current, sort_order) VALUES ($1, $2, false, false, $3)`,
+    await db.query(`INSERT INTO milestones (goal_id, title, done, is_current, sort_order) VALUES ($1, $2, 0, 0, $3)`,
       [req.params.id, title, maxSort + 1]);
       
     const { rows: goalRows } = await db.query(`SELECT * FROM goals WHERE id=$1`, [req.params.id]);
@@ -113,8 +119,8 @@ router.patch('/:goalId/milestones/:mid', async (req, res) => {
     const { done, is_current, title } = req.body;
     const updates = []; const params = [];
     let paramIndex = 1;
-    if (done !== undefined) { updates.push(`done=$${paramIndex++}`); params.push(done); }
-    if (is_current !== undefined) { updates.push(`is_current=$${paramIndex++}`); params.push(is_current); }
+    if (done !== undefined) { updates.push(`done=$${paramIndex++}`); params.push(done ? 1 : 0); }
+    if (is_current !== undefined) { updates.push(`is_current=$${paramIndex++}`); params.push(is_current ? 1 : 0); }
     if (title !== undefined) { updates.push(`title=$${paramIndex++}`); params.push(title); }
     if (updates.length) {
       params.push(req.params.mid);

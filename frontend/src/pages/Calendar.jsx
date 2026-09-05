@@ -25,9 +25,15 @@ export default function Calendar() {
 
   async function load() {
     setLoading(true);
-    const data = await api.get(`/calendar-events?date=${today}`);
-    setEvents(data);
-    setLoading(false);
+    try {
+      const data = await api.get(`/calendar-events?date=${today}`);
+      setEvents(data || []);
+    } catch (e) {
+      console.error(e);
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, []);
