@@ -13,6 +13,8 @@ export default function Goals({ refreshKey, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', category: 'Work • Strategic', color: 'primary', due_date: '' });
   const [newMilestone, setNewMilestone] = useState({});
+  const [editingMilestoneId, setEditingMilestoneId] = useState(null);
+  const [editingMilestoneTitle, setEditingMilestoneTitle] = useState('');
 
   async function load() {
     setLoading(true);
@@ -43,6 +45,24 @@ export default function Goals({ refreshKey, onRefresh }) {
     if (!title || !title.trim()) return;
     await api.post(`/goals/${goalId}/milestones`, { title });
     setNewMilestone((s) => ({ ...s, [goalId]: '' }));
+    load();
+  }
+
+  async function deleteMilestone(goalId, milestoneId) {
+    if (!confirm('Delete this milestone?')) return;
+    await api.del(`/goals/${goalId}/milestones/${milestoneId}`);
+    load();
+    onRefresh();
+  }
+
+  async function saveMilestoneEdit(goalId, m) {
+    if (editingMilestoneTitle.trim() === m.title) {
+      setEditingMilestoneId(null);
+      return;
+    }
+    if (!editingMilestoneTitle.trim()) return;
+    await api.patch(`/goals/${goalId}/milestones/${m.id}`, { title: editingMilestoneTitle.trim() });
+    setEditingMilestoneId(null);
     load();
   }
 
@@ -127,12 +147,38 @@ export default function Goals({ refreshKey, onRefresh }) {
               </p>
               <div className="space-y-space-2xs mb-space-sm">
                 {g.milestones.map((m) => (
-                  <label key={m.id} className="flex items-center gap-space-xs p-space-xs rounded-lg hover:bg-surface-container-low cursor-pointer">
-                    <input type="checkbox" checked={!!m.done} onChange={() => toggleMilestone(g.id, m)}
-                      className="w-4 h-4 rounded accent-primary" />
-                    <span className={`font-body-md text-body-md flex-1 ${m.done ? 'line-through text-on-surface-variant' : 'text-on-surface'}`}>{m.title}</span>
-                    {m.is_current === 1 && !m.done && <span className="px-space-xs py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-sm text-label-sm">Current</span>}
-                  </label>
+                  <div key={m.id} className="group flex items-center gap-space-xs p-space-xs rounded-lg hover:bg-surface-container-low">
+                    {editingMilestoneId === m.id ? (
+                      <div className="flex-1 flex items-center gap-space-xs">
+                        <input 
+                          type="text" 
+                          autoFocus
+                          value={editingMilestoneTitle} 
+                          onChange={(e) => setEditingMilestoneTitle(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && saveMilestoneEdit(g.id, m)}
+                          onBlur={() => saveMilestoneEdit(g.id, m)}
+                          className="flex-1 px-space-xs py-0.5 bg-surface rounded border border-primary focus:outline-none text-body-md"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <label className="flex items-center gap-space-xs flex-1 cursor-pointer">
+                          <input type="checkbox" checked={!!m.done} onChange={() => toggleMilestone(g.id, m)}
+                            className="w-4 h-4 rounded accent-primary" />
+                          <span className={`font-body-md text-body-md flex-1 ${m.done ? 'line-through text-on-surface-variant' : 'text-on-surface'}`}>{m.title}</span>
+                          {m.is_current === 1 && !m.done && <span className="px-space-xs py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-sm text-label-sm">Current</span>}
+                        </label>
+                        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+                          <button onClick={() => { setEditingMilestoneId(m.id); setEditingMilestoneTitle(m.title); }} className="p-1 text-on-surface-variant hover:text-primary rounded flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[16px]">edit</span>
+                          </button>
+                          <button onClick={() => deleteMilestone(g.id, m.id)} className="p-1 text-on-surface-variant hover:text-error rounded flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 ))}
               </div>
 
